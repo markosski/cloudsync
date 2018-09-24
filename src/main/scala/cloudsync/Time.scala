@@ -1,0 +1,4 @@
+package cloudsync
+
+object Time {
+}
