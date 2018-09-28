@@ -7,7 +7,7 @@ import com.fasterxml.jackson.module.scala.DefaultScalaModule
 case class MetaRecord(deviceName: String, hash: String)
 case class MetaFile(path: String, meta: MetaRecord)
 
-object MetaFile extends WithLogger {
+object MetaFile extends Loggable {
   import cloudsync.utils.Implicits._
 
   def getMetaFilePath(path: String): String = {

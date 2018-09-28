@@ -11,7 +11,7 @@ case class LocalFile(path: String, hash: String)
 case class RemoteFile(path: String, hash: String)
 case class TriggerFile(localFile: LocalFile, localBasePath: String)
 
-object FileOps extends WithLogger {
+object FileOps extends Loggable {
   import cloudsync.utils.Implicits._
 
   val pathSeparator = ("" / "").sep
@@ -23,13 +23,19 @@ object FileOps extends WithLogger {
     new File(path).mkdirs()
   }
 
+  def absoluteToRelative(absolutePath: String, basePath: String): Maybe[String] = {
+    log.info(s"Converting absolute to relative path: $absolutePath, $basePath")
+    if (absolutePath.startsWith(basePath)) Right(absolutePath.stripPrefix(basePath).stripPrefix("/"))
+    else Left(s"basePath: $basePath is not a suffix of $absolutePath")
+  }
+
   def pathExists(path: String): Boolean = {
     log.info(s"Check if file exists: $path")
     new File(path).exists()
   }
 
   def listFiles(path: String): Option[Seq[String]] = {
-    log.info("List files for path: $path")
+    log.info(s"List files for path: $path")
     val file = new File(path)
     Try {
       file.listFiles().map(_.getAbsolutePath).toList
@@ -49,6 +55,11 @@ object FileOps extends WithLogger {
     remoteBasePath / triggerFile.localFile.path.replaceFirst(
       triggerFile.localBasePath, ""
     )
+  }
+
+  def buildRemotePath(localBasePath: String, localAbsolutePath: String, remoteBasePath: String): String = {
+    log.info(s"Building remote path: $localBasePath, $localAbsolutePath, $remoteBasePath")
+    remoteBasePath / localAbsolutePath.replaceFirst(localBasePath, "")
   }
 
   def buildLocalPath(remotePath: String, remoteBasePath: String, localBasePath: String): String = {

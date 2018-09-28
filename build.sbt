@@ -12,4 +12,5 @@ lazy val root = (project in file(".")).
       ++ cats
       ++ log
       ++ json
+      ++ commonsIO
   )

@@ -9,7 +9,7 @@ import com.amazonaws.services.s3.model.{DeleteObjectsRequest, GetObjectRequest, 
 
 import collection.JavaConverters._
 
-class S3Client(region: String, bucket: String) extends CloudClient with WithLogger {
+class S3Client(region: String, bucket: String) extends CloudClient with Loggable {
   private val client = createClient()
 
   private def createClient(): AmazonS3 = {

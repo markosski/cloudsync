@@ -5,7 +5,7 @@ import java.io.File
 import cats.data.{Kleisli, Reader}
 import cloudsync.client.CloudClient
 
-object FileSyncService extends WithLogger {
+object FileSyncOps extends Loggable {
 
   /**
     * @return
@@ -56,10 +56,10 @@ object FileSyncService extends WithLogger {
     env => {
       log.info(s"Uploading $localBasePath, $localRelativePath -> $remoteBasePath")
       for {
-        triggerFile <- FileOps.toTriggerFile(localBasePath, localRelativePath)
-        remotePath <- toMaybe(FileOps.buildRemotePath(triggerFile, remoteBasePath))
-        isChanged <- isFileChanged(triggerFile.localFile, remotePath).run(env)
-        ret       <- {
+        triggerFile   <- FileOps.toTriggerFile(localBasePath, localRelativePath)
+        remotePath    <- toMaybe(FileOps.buildRemotePath(triggerFile, remoteBasePath))
+        isChanged     <- isFileChanged(triggerFile.localFile, remotePath).run(env)
+        ret           <- {
           if (isChanged)
             uploadFile(triggerFile, remoteBasePath).run(env)
           else
@@ -89,18 +89,18 @@ object FileSyncService extends WithLogger {
     }
   }
 
-  def deleteFile(triggerFile: TriggerFile, remoteBasePath: String) = Reader[Env, Maybe[Boolean]] {
+  def deleteFile(localBasePath: String, localRelativePath: String, remoteBasePath: String) = Reader[Env, Maybe[Boolean]] {
     env => {
       for {
-        file <- env.client.delete(
-          FileOps.buildRemotePath(triggerFile, remoteBasePath)
-        )
         metaFile <- env.client.delete(
           MetaFile.getMetaFilePath(
-            FileOps.buildRemotePath(triggerFile, remoteBasePath)
+            FileOps.buildRemotePath(localBasePath, localRelativePath, remoteBasePath)
           )
         )
-      } yield metaFile
+        file <- env.client.delete(
+          FileOps.buildRemotePath(localBasePath, localRelativePath, remoteBasePath)
+        )
+      } yield file
     }
   }
 }

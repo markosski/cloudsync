@@ -1,9 +1,9 @@
 package cloudsync.client
 import java.io.File
 
-import cloudsync.{Maybe, WithLogger}
+import cloudsync.{Maybe, Loggable}
 
-class TestClient extends CloudClient with WithLogger {
+class TestClient extends CloudClient with Loggable {
   def put(file: File, path: String): Maybe[Boolean] = {
     log.info(s"put, $file -> $path")
     Right(true)

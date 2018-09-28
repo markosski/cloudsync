@@ -15,4 +15,7 @@ object Dependencies {
     "com.fasterxml.jackson.core" % "jackson-core" % "2.9.6",
     "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.9.6"
   )
+  lazy val commonsIO = Seq(
+    "commons-io" % "commons-io" % "2.6"
+  )
 }
