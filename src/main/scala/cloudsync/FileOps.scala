@@ -1,10 +1,14 @@
 package cloudsync
 
 import java.io.File
-import java.nio.file.{Files, Paths}
+import java.nio.file.{FileVisitOption, Files, Path, Paths}
 import java.security.MessageDigest
 import java.util.Base64
 
+import org.apache.commons.io.FileUtils
+import org.apache.commons.io.filefilter.{FalseFileFilter, TrueFileFilter}
+
+import scala.collection.JavaConverters._
 import scala.util.Try
 
 case class LocalFile(path: String, hash: String)
@@ -42,6 +46,14 @@ object FileOps extends Loggable {
     }.toOption
   }
 
+  def listAllFiles(path: String): Option[Seq[String]] = {
+    log.info(s"List files for path: $path")
+    Try {
+      FileUtils.listFiles(new File(path), TrueFileFilter.INSTANCE, FalseFileFilter.INSTANCE).iterator().asScala.toSeq
+        .map(_.getAbsolutePath)
+    }.toOption
+  }
+
   def splitPathToParts(path: String): Seq[String] = {
     path.split(pathSeparator)
   }
@@ -57,9 +69,9 @@ object FileOps extends Loggable {
     )
   }
 
-  def buildRemotePath(localBasePath: String, localAbsolutePath: String, remoteBasePath: String): String = {
-    log.info(s"Building remote path: $localBasePath, $localAbsolutePath, $remoteBasePath")
-    remoteBasePath / localAbsolutePath.replaceFirst(localBasePath, "")
+  def buildRemotePath(localPath: String, localBasePath: String, remoteBasePath: String): String = {
+    log.info(s"Building remote path: $localBasePath, $localPath, $remoteBasePath")
+    remoteBasePath / localPath.replaceFirst(localBasePath, "")
   }
 
   def buildLocalPath(remotePath: String, remoteBasePath: String, localBasePath: String): String = {

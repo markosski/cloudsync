@@ -5,9 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 
 case class MetaRecord(deviceName: String, hash: String)
-case class MetaFile(path: String, meta: MetaRecord)
+case class MetaFileOps(path: String, meta: MetaRecord)
 
-object MetaFile extends Loggable {
+object MetaFileOps extends Loggable {
   import cloudsync.utils.Implicits._
 
   def getMetaFilePath(path: String): String = {

@@ -21,7 +21,7 @@ object FileSyncOps extends Loggable {
         )
         metaFile <- env.client.put(
           s"""{"deviceName":"test","hash":"${triggerFile.localFile.hash}"}""",
-          MetaFile.getMetaFilePath(
+          MetaFileOps.getMetaFilePath(
             FileOps.buildRemotePath(triggerFile, remoteBasePath)
           )
         )
@@ -33,13 +33,13 @@ object FileSyncOps extends Loggable {
     env => {
       log.info(s"Check if file has changed: $localFile, $remotePath")
       for {
-        metaFilePath  <- toMaybe(MetaFile.getMetaFilePath(remotePath))
+        metaFilePath  <- toMaybe(MetaFileOps.getMetaFilePath(remotePath))
         exists        <- env.client.exists(metaFilePath)
         ret           <- {
           if (!exists) Right(true)
           else
             for {
-              metaRecord <- MetaFile.getMetaFileContents(metaFilePath, env.client)
+              metaRecord <- MetaFileOps.getMetaFileContents(metaFilePath, env.client)
               ret <- {
                 if (metaRecord.hash == localFile.hash)
                   Right(false)
@@ -93,12 +93,12 @@ object FileSyncOps extends Loggable {
     env => {
       for {
         metaFile <- env.client.delete(
-          MetaFile.getMetaFilePath(
-            FileOps.buildRemotePath(localBasePath, localRelativePath, remoteBasePath)
+          MetaFileOps.getMetaFilePath(
+            FileOps.buildRemotePath(localRelativePath, localBasePath, remoteBasePath)
           )
         )
         file <- env.client.delete(
-          FileOps.buildRemotePath(localBasePath, localRelativePath, remoteBasePath)
+          FileOps.buildRemotePath(localRelativePath, localBasePath, remoteBasePath)
         )
       } yield file
     }

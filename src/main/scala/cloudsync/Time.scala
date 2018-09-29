@@ -1,4 +1,0 @@
-package cloudsync
-
-object Time {
-}

@@ -13,38 +13,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 case class Event(eventType: String, filePath: String)
 
-class FileAlterationListenerImpl extends FileAlterationListener with Loggable {
-  val queue = new LinkedBlockingQueue[Event](100)
-
-  override def onStart(observer: FileAlterationObserver): Unit = {
-    log.info("Checking events.")
-  }
-
-  override def onDirectoryCreate(directory: File): Unit = log.info(s"dir create: ${directory.getAbsolutePath}")
-
-  override def onDirectoryChange(directory: File): Unit = log.info(s"dir change: ${directory.getAbsolutePath}")
-
-  override def onDirectoryDelete(directory: File): Unit = log.info(s"dir delete: ${directory.getAbsolutePath}")
-
-  override def onFileCreate(file: File): Unit = {
-    log.info(s"file create: ${file.getAbsolutePath}")
-    queue.put(Event("create", file.getAbsolutePath))
-  }
-
-  override def onFileChange(file: File): Unit = {
-    log.info(s"file update: ${file.getAbsolutePath}")
-    queue.put(Event("update", file.getAbsolutePath))
-  }
-
-  override def onFileDelete(file: File): Unit = {
-    log.info(s"file delete: ${file.getAbsolutePath}")
-    queue.put(Event("delete", file.getAbsolutePath))
-  }
-
-  override def onStop(observer: FileAlterationObserver): Unit = ()
-}
-
-object FileSyncMonitor extends Loggable {
+object MonitorApp extends Loggable {
   val listener = new FileAlterationListenerImpl()
 
   def processQueue(localBasePath: String, remoteBasePath: String) = Reader[Env, Future[Unit]] {
@@ -78,7 +47,7 @@ object FileSyncMonitor extends Loggable {
           }
 
           resp match {
-            case Left(msg) => log.info(s"Error: $msg")
+            case Left(msg) => throw new Exception(s"There was an error: $msg")
             case Right(x) => ()
           }
         }
@@ -111,10 +80,55 @@ object FileSyncMonitor extends Loggable {
       val client = new S3Client("us-east-1", "markos-files")
     }
 
-    val localBasePath = args(0)
-    val remoteBasePath = args(1)
+    val opts = Opts(args)
 
-    processQueue(localBasePath, remoteBasePath).run(env)
-    runMonitor(localBasePath)
+    println(opts)
+
+    if (opts.contains("sync")) {
+      FileOps.listAllFiles(opts("localDir")) match {
+        case Some(list) => {
+          list.map(Event("update", _))
+          .foreach(listener.queue.put)
+        }
+        case None => throw new Exception("Some failure")
+      }
+    }
+
+    processQueue(opts("localDir"), opts("remoteDir")).run(env)
+
+    if (opts.contains("monitor")) {
+      runMonitor(opts("localDir"))
+    }
+  }
+}
+
+object Opts {
+  type OptionMap = Map[String, String]
+
+  val usage = """
+    Usage: ?
+  """
+
+  def apply(args: Array[String]): OptionMap = {
+    if (args.length == 0) println(usage)
+    val arglist = args.toList
+
+    def isSwitch(s : String) = s(0) == '-'
+
+    def optionMap(map : OptionMap, list: List[String]) : OptionMap = {
+      list match {
+        case Nil => map
+        case "--local-dir" :: value :: tail =>
+          optionMap(map ++ Map("localDir" -> value), tail)
+        case "--remote-dir" :: value :: tail =>
+          optionMap(map ++ Map("remoteDir" -> value), tail)
+        case "--sync-first" :: tail =>
+          optionMap(map ++ Map("sync" -> ""), tail)
+        case "--monitor" :: tail =>
+          optionMap(map ++ Map("monitor" -> ""), tail)
+        case option :: tail => throw new Exception(s"Unknown option $option")
+      }
+    }
+    optionMap(Map(), arglist)
   }
 }
