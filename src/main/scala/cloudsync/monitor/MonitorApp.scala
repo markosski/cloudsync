@@ -80,55 +80,22 @@ object MonitorApp extends Loggable {
       val client = new S3Client("us-east-1", "markos-files")
     }
 
-    val opts = Opts(args)
+    val cli = new CliConf(args)
 
-    println(opts)
+    val monitor   = cli.monitor()
+    val sync      = cli.syncOnStart()
+    val localDir  = cli.localDir()
+    val remoteDir = cli.remoteDir()
 
-    if (opts.contains("sync")) {
-      FileOps.listAllFiles(opts("localDir")) match {
-        case Some(list) => {
-          list.map(Event("update", _))
-          .foreach(listener.queue.put)
-        }
-        case None => throw new Exception("Some failure")
-      }
+    if (sync) {
+      FileOps.listAllFiles(localDir)
+        .map(Event("update", _))
+        .foreach(listener.queue.put)
     }
 
-    processQueue(opts("localDir"), opts("remoteDir")).run(env)
+    processQueue(localDir, remoteDir).run(env)
 
-    if (opts.contains("monitor")) {
-      runMonitor(opts("localDir"))
-    }
-  }
-}
-
-object Opts {
-  type OptionMap = Map[String, String]
-
-  val usage = """
-    Usage: ?
-  """
-
-  def apply(args: Array[String]): OptionMap = {
-    if (args.length == 0) println(usage)
-    val arglist = args.toList
-
-    def isSwitch(s : String) = s(0) == '-'
-
-    def optionMap(map : OptionMap, list: List[String]) : OptionMap = {
-      list match {
-        case Nil => map
-        case "--local-dir" :: value :: tail =>
-          optionMap(map ++ Map("localDir" -> value), tail)
-        case "--remote-dir" :: value :: tail =>
-          optionMap(map ++ Map("remoteDir" -> value), tail)
-        case "--sync-first" :: tail =>
-          optionMap(map ++ Map("sync" -> ""), tail)
-        case "--monitor" :: tail =>
-          optionMap(map ++ Map("monitor" -> ""), tail)
-        case option :: tail => throw new Exception(s"Unknown option $option")
-      }
-    }
-    optionMap(Map(), arglist)
+    if (monitor)
+      runMonitor(localDir)
   }
 }

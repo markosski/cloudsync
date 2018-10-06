@@ -46,12 +46,10 @@ object FileOps extends Loggable {
     }.toOption
   }
 
-  def listAllFiles(path: String): Option[Seq[String]] = {
+  def listAllFiles(path: String): Seq[String] = {
     log.info(s"List files for path: $path")
-    Try {
-      FileUtils.listFiles(new File(path), TrueFileFilter.INSTANCE, FalseFileFilter.INSTANCE).iterator().asScala.toSeq
-        .map(_.getAbsolutePath)
-    }.toOption
+    FileUtils.listFiles(new File(path), TrueFileFilter.INSTANCE, FalseFileFilter.INSTANCE).iterator().asScala.toSeq
+      .map(_.getAbsolutePath)
   }
 
   def splitPathToParts(path: String): Seq[String] = {

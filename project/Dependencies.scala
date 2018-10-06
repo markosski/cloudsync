@@ -18,4 +18,5 @@ object Dependencies {
   lazy val commonsIO = Seq(
     "commons-io" % "commons-io" % "2.6"
   )
+  lazy val cli = "org.rogach" %% "scallop" % "3.1.3"
 }
