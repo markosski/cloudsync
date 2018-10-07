@@ -25,12 +25,12 @@ class S3Client(region: String, bucket: String) extends CloudClient with Loggable
   private def cleanPath(path: String) = path.stripPrefix("/")
 
   def put(file: File, path: String): Maybe[Boolean] = {
-    log.info(s"S3, uploading file: $file -> $path")
+    log.debug(s"S3, uploading file: $file -> $path")
     toMaybe(client.putObject(bucket, cleanPath(path), file), true)
   }
 
   def put(content: String, path: String): Maybe[Boolean] = {
-    log.info(s"S3, creating file with content: $path")
+    log.debug(s"S3, creating file with content: $path")
     toMaybe(client.putObject(bucket, cleanPath(path), content), true)
   }
 
@@ -38,7 +38,7 @@ class S3Client(region: String, bucket: String) extends CloudClient with Loggable
     * Only suitable for small files.
     */
   def get(path: String) = {
-    log.info(s"S3, getting contenst of file $path")
+    log.debug(s"S3, getting contenst of file $path")
     toMaybe {
       val is = new InputStreamReader(client.getObject(bucket, cleanPath(path)).getObjectContent)
       val reader = new BufferedReader(is)
@@ -47,13 +47,13 @@ class S3Client(region: String, bucket: String) extends CloudClient with Loggable
   }
 
   def get(remotePath: String, localPath: String): Maybe[Boolean] = {
-    log.info(s"S3, download file $remotePath -> $localPath")
+    log.debug(s"S3, download file $remotePath -> $localPath")
     toMaybe {
       val basePath = FileOps.getBasePath(localPath)
       if (!FileOps.pathExists(basePath))
         FileOps.createPath(basePath)
 
-      log.info(s"Downloading remote: $remotePath to local: $localPath")
+      log.debug(s"Downloading remote: $remotePath to local: $localPath")
 
       val file = new File(localPath)
       client.getObject(new GetObjectRequest(bucket, cleanPath(remotePath)), file)
@@ -62,7 +62,7 @@ class S3Client(region: String, bucket: String) extends CloudClient with Loggable
   }
 
   def delete(path: String): Maybe[Boolean] = {
-    log.info(s"S3, deleting file: $path")
+    log.debug(s"S3, deleting file: $path")
     for {
       deleteList <- list(cleanPath(path))
       res <- deleteList match {
@@ -78,7 +78,7 @@ class S3Client(region: String, bucket: String) extends CloudClient with Loggable
   }
 
   def exists(path: String): Maybe[Boolean] = {
-    log.info(s"S3, checking if file exist: $path")
+    log.debug(s"S3, checking if file exist: $path")
     for {
       x <- list(cleanPath(path))
       y <- x match {
@@ -90,7 +90,7 @@ class S3Client(region: String, bucket: String) extends CloudClient with Loggable
   }
 
   def list(path: String): Maybe[List[String]] = {
-    log.info(s"S3, listing path: $path")
+    log.debug(s"S3, listing path: $path")
     val request = new ListObjectsV2Request()
       .withBucketName(bucket)
       .withPrefix(cleanPath(path))

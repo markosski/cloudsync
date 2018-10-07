@@ -22,24 +22,26 @@ object FileOps extends Loggable {
 
   def getBasePath(path: String): String = new File(path).getParent
 
+  def pathHasPrefix(path: String, prefix: String): Boolean = path.startsWith(prefix)
+
   def createPath(path: String): Boolean = {
-    log.info(s"Create path: $path")
+    log.debug(s"Create path: $path")
     new File(path).mkdirs()
   }
 
   def absoluteToRelative(absolutePath: String, basePath: String): Maybe[String] = {
-    log.info(s"Converting absolute to relative path: $absolutePath, $basePath")
+    log.debug(s"Converting absolute to relative path: $absolutePath, $basePath")
     if (absolutePath.startsWith(basePath)) Right(absolutePath.stripPrefix(basePath).stripPrefix("/"))
     else Left(s"basePath: $basePath is not a suffix of $absolutePath")
   }
 
   def pathExists(path: String): Boolean = {
-    log.info(s"Check if file exists: $path")
+    log.debug(s"Check if file exists: $path")
     new File(path).exists()
   }
 
   def listFiles(path: String): Option[Seq[String]] = {
-    log.info(s"List files for path: $path")
+    log.debug(s"List files for path: $path")
     val file = new File(path)
     Try {
       file.listFiles().map(_.getAbsolutePath).toList
@@ -47,7 +49,7 @@ object FileOps extends Loggable {
   }
 
   def listAllFiles(path: String): Seq[String] = {
-    log.info(s"List files for path: $path")
+    log.debug(s"List files for path: $path")
     FileUtils.listFiles(new File(path), TrueFileFilter.INSTANCE, FalseFileFilter.INSTANCE).iterator().asScala.toSeq
       .map(_.getAbsolutePath)
   }
@@ -61,19 +63,19 @@ object FileOps extends Loggable {
   }
 
   def buildRemotePath(triggerFile: TriggerFile, remoteBasePath: String): String = {
-    log.info(s"Building remote path: $triggerFile, $remoteBasePath")
+    log.debug(s"Building remote path: $triggerFile, $remoteBasePath")
     remoteBasePath / triggerFile.localFile.path.replaceFirst(
       triggerFile.localBasePath, ""
     )
   }
 
   def buildRemotePath(localPath: String, localBasePath: String, remoteBasePath: String): String = {
-    log.info(s"Building remote path: $localBasePath, $localPath, $remoteBasePath")
+    log.debug(s"Building remote path: $localBasePath, $localPath, $remoteBasePath")
     remoteBasePath / localPath.replaceFirst(localBasePath, "")
   }
 
   def buildLocalPath(remotePath: String, remoteBasePath: String, localBasePath: String): String = {
-    log.info(s"Building local path: $remotePath, $remoteBasePath, $localBasePath")
+    log.debug(s"Building local path: $remotePath, $remoteBasePath, $localBasePath")
     localBasePath / remotePath.replaceFirst(remoteBasePath, "")
   }
 
@@ -84,7 +86,7 @@ object FileOps extends Loggable {
   }
 
   def toLocalFile(path: String): Maybe[LocalFile] = {
-    log.info(s"Converting $path to LocalFile")
+    log.debug(s"Converting $path to LocalFile")
 
     val file = new File(path)
     computeMD5(file) match {
@@ -99,7 +101,7 @@ object FileOps extends Loggable {
     * https://stackoverflow.com/questions/304268/getting-a-files-md5-checksum-in-java
     */
   def computeMD5(file: File): Option[String] = {
-    log.info(s"Calculating md5 hash for file: ${file.getAbsolutePath}")
+    log.debug(s"Calculating md5 hash for file: ${file.getAbsolutePath}")
     Try {
       val b = Files.readAllBytes(Paths.get(file.getAbsolutePath))
       val bytes: Array[Byte] = MessageDigest.getInstance("MD5").digest(b)

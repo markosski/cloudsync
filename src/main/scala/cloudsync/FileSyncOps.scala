@@ -12,7 +12,7 @@ object FileSyncOps extends Loggable {
     */
   def uploadFile(triggerFile: TriggerFile, remoteBasePath: String) = Reader[Env, Maybe[Boolean]] {
     env: Env => {
-      log.info(s"Uploading file: ${triggerFile} to remote prefix $remoteBasePath")
+      log.debug(s"Uploading file: ${triggerFile} to remote prefix $remoteBasePath")
 
       for {
         file <- env.client.put(
@@ -31,7 +31,7 @@ object FileSyncOps extends Loggable {
 
   def isFileChanged(localFile: LocalFile, remotePath: String) = Reader[Env, Maybe[Boolean]] {
     env => {
-      log.info(s"Check if file has changed: $localFile, $remotePath")
+      log.debug(s"Check if file has changed: $localFile, $remotePath")
       for {
         metaFilePath  <- toMaybe(MetaFileOps.getMetaFilePath(remotePath))
         exists        <- env.client.exists(metaFilePath)
@@ -54,7 +54,7 @@ object FileSyncOps extends Loggable {
 
   def uploadFileIfChanged(localBasePath: String, localRelativePath: String, remoteBasePath: String) = Reader[Env, Maybe[Boolean]] {
     env => {
-      log.info(s"Uploading $localBasePath, $localRelativePath -> $remoteBasePath")
+      log.debug(s"Uploading file if changed $localBasePath, $localRelativePath -> $remoteBasePath")
       for {
         triggerFile   <- FileOps.toTriggerFile(localBasePath, localRelativePath)
         remotePath    <- toMaybe(FileOps.buildRemotePath(triggerFile, remoteBasePath))
@@ -71,7 +71,7 @@ object FileSyncOps extends Loggable {
 
   def downloadFileIfChanged(remotePath: String, remoteBasePath: String, localBasePath: String) = Reader[Env, Maybe[Boolean]] {
     env => {
-      log.info(s"Downloading $remotePath -> $localBasePath")
+      log.debug(s"Downloading $remotePath -> $localBasePath")
 
       for {
         localPath <- toMaybe(FileOps.buildLocalPath(remotePath, remoteBasePath, localBasePath))

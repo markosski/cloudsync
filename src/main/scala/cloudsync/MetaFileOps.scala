@@ -16,7 +16,7 @@ object MetaFileOps extends Loggable {
   }
 
   def getMetaFileContents(path: String, client: CloudClient): Maybe[MetaRecord] = {
-    log.info(s"Getting contents of meta file: $path")
+    log.debug(s"Getting contents of meta file: $path")
     val mapper = new ObjectMapper()
     mapper.registerModule(DefaultScalaModule)
 
