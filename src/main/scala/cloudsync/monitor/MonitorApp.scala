@@ -94,11 +94,11 @@ object MonitorApp extends Loggable {
   }
 
   def main(args: Array[String]): Unit = {
-    print(Source.fromFile("banner.txt").mkString)
+    print(Source.fromFile("src/main/resources/banner.txt").mkString)
 
     val cli = new CliConf(args)
-    val sync    = cli.syncOnStart()
-    val paths   = cli.monitorPaths().replaceAll(" ", "").split(",")
+    val sync  = cli.syncOnStart()
+    val paths = cli.monitorPaths().split(",").map(_.trim)
 
     val pathMaps: List[PathMap] = Try {
       paths
@@ -115,12 +115,16 @@ object MonitorApp extends Loggable {
     }
 
     if (sync) {
-      val filesToSync = FileOps.listAllFiles("")
+      println("test test test")
       val createEventScoped = createEvent(pathMaps)_
 
-      filesToSync.map(createEventScoped("update", _))
-        .foreach(queue.put)
-      log.info(s"Queued ${filesToSync.size} files")
+      for (pathMap <- pathMaps) {
+        val filesToSync = FileOps.listAllFiles(pathMap.localDir)
+
+        filesToSync.map(createEventScoped("update", _))
+          .foreach(queue.put)
+        log.info(s"Queued ${filesToSync.size} files for local dir ${pathMap.localDir}")
+      }
     }
 
     processQueueThread(env)
