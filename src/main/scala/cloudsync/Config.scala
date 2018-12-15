@@ -9,8 +9,8 @@ case class Config(
 
 object Config {
   val conf = ConfigFactory.load()
-
   def create: Config = {
+
     Config(
       conf.getString("cloudService"),
       Map(

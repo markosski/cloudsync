@@ -2,20 +2,27 @@ package cloudsync.client
 
 import java.io.File
 
-import cloudsync.Maybe
+import cats.Monad
+import cats.implicits._
 
-trait CloudClient {
-  def put(file: File, path: String): Maybe[Boolean]
+trait CloudClient[F[_]] {
+  def put(file: File, path: String): F[Unit]
 
-  def put(content: String, path: String): Maybe[Boolean]
+  def put(content: String, path: String): F[Unit]
 
-  def get(path: String): Maybe[String]
+  /**
+    * Get contents of file.
+    */
+  def getContents(path: String): F[String]
 
-  def get(remotePath: String, localPath: String): Maybe[Boolean]
+  /**
+    * Download remote file.
+    */
+  def get(remotePath: String, localPath: String): F[Unit]
 
-  def delete(path: String): Maybe[Boolean]
+  def delete(path: String): F[Unit]
 
-  def exists(path: String): Maybe[Boolean]
+  def exists(path: String): F[Boolean]
 
-  def list(path: String): Maybe[Seq[String]]
+  def list(path: String): F[Seq[String]]
 }
