@@ -22,7 +22,7 @@ case class PathMap(localDir: String, remoteDir: String)
 /**
   * https://stackify.com/java-thread-pools/
   */
-object MonitorApp extends App with Loggable {
+object MonitorApp extends Loggable {
   val queue = new LinkedBlockingQueue[Event](1000)
   implicit val cs = IO.contextShift(scala.concurrent.ExecutionContext.global)
 
@@ -58,11 +58,16 @@ object MonitorApp extends App with Loggable {
    * https://typelevel.org/cats/typeclasses/parallel.html
    */
   def processQueue[F[_]: ConcurrentEffect, G[_]](queue: LinkedBlockingQueue[Event])
-  (implicit env: Env[F], E: Effect[F], cs: ContextShift[F], ev: Parallel[F, G]) = {
+  (implicit env: Env[F], E: Effect[F], cs: ContextShift[F], ev: Parallel[F, G]): F[Unit] = {
     for {
       _       <- logDebug(s"Draining event queue of current size: ${queue.size}")
       events  <- E.delay(poll(queue, List[Event]()))
-      proc    <- events.map(processEvent(_)).parSequence
+      proc    <- events.map { event => 
+        processEvent(event).handleErrorWith { error =>
+          logError(s"Failed processing event: ${event} with error: ${error.getMessage}")
+          E.raiseError(error)
+        }
+      }.parSequence
     } yield proc
   }
 
@@ -86,43 +91,73 @@ object MonitorApp extends App with Loggable {
     monitor.start
   }
 
-  print(Source.fromFile("src/main/resources/banner.txt").mkString)
+  def fileToPathMap(filePath: String): Either[Throwable, List[PathMap]] = for {
+    source        <- Try(Source.fromFile(new File(filePath.stripPrefix("file://")))).toEither
+    pathMapString <- Either.right { 
+      source.getLines.toList
+        .map(_.trim)
+        .filter(_.size > 0)
+        .mkString(",")
+      }
+    ret           <- stringToPathMap(pathMapString)
+  } yield ret
 
-  val cli = new CliConf(args)
-  val sync  = cli.syncOnStart()
-  val paths = cli.monitorPaths().split(",").map(_.trim)
-
-  val pathMaps: List[PathMap] = Try {
-    paths
-      .map(_.split(":"))
-      .map(x => PathMap(x(0), x(1)))
-  } match {
-    case Failure(err) => throw new Exception(s"ERROR: failed at parsing path maps: $err")
-    case Success(v) => v.toList
-  }
-
-  if (sync) {
-    println("test test test")
-    val createEventScoped = createEvent(pathMaps)_
-
-    for (pathMap <- pathMaps) {
-      val filesToSync = FileOps.listAllFiles(pathMap.localDir)
-
-      filesToSync.map(createEventScoped("update", _))
-        .foreach(queue.put)
-      log.info(s"Queued ${filesToSync.size} files for local dir ${pathMap.localDir}")
+  def stringToPathMap(pathMapString: String): Either[Throwable, List[PathMap]] = {
+    Try {
+      pathMapString
+        .split(",")
+        .map(_.trim)
+        .map(_.split(":"))
+        .map(x => PathMap(x(0), x(1)))
+    } match {
+      case Failure(err) => Left(throw new Exception(s"ERROR: failed at parsing path maps: $err"))
+      case Success(v) => Right(v.toList)
     }
   }
 
-  implicit val env = new Env[IO] {
-    val config: Config = Config.create
-    val client: CloudClient[IO] = new S3Client(config.serviceOpts("region"), config.serviceOpts("bucketName"))
-  }
+  def main(args: Array[String]): Unit = {
+    print(Source.fromFile("src/main/resources/banner.txt").mkString)
 
-  startMonitor[IO](queue, pathMaps).unsafeRunSync
+    val cli = new CliConf(args)
+    val sync  = cli.syncOnStart()
+    val paths = cli.monitorPaths()
 
-  while (true) {
-    processQueue[IO, IO.Par](queue).attempt.unsafeRunSync
-    Thread.sleep(1000)
+    val pathMaps: List[PathMap] = {
+      if (paths.startsWith("file://"))
+        fileToPathMap(paths)
+      else
+        stringToPathMap(paths)
+    } match {
+        case Left(l) => throw l
+        case Right(r) => r
+    }
+
+    if (sync) {
+      println("test test test")
+      val createEventScoped = createEvent(pathMaps) _
+      for (pathMap <- pathMaps) {
+        val filesToSync = FileOps.listAllFiles(pathMap.localDir)
+
+        filesToSync
+          .map(createEventScoped("update", _))
+          .foreach(queue.put)
+        log.info(s"Queued ${filesToSync.size} files for local dir ${pathMap.localDir}")
+      }
+    }
+
+    implicit val env = new Env[IO] {
+      val config: Config = Config.create
+      val client: CloudClient[IO] = new S3Client(config.serviceOpts("region"), config.serviceOpts("bucketName"))
+    }
+
+    startMonitor[IO](queue, pathMaps).unsafeRunSync
+
+    while (true) {
+      processQueue[IO, IO.Par](queue).attempt.unsafeRunSync match {
+        case Left(l) => log.error(l.getMessage)
+        case Right(r) => ()
+      }
+      Thread.sleep(1000)
+    } 
   }
 }
