@@ -19,10 +19,12 @@ changes. Change to a file will sync the file with its counterpart in the cloud s
 At the moment only AWS S3 storage is implemented. CloudSync can be easily extended to other
 cloud storage by implementing `CloudClient` interface.
 
+CloudClient was tested on MacOS and should work fine on Linux as well, not sure about Windows.
+
 ## How to use.
 
 1. Build the project with `sbt assembly`
-2. Provide configuration file to configure cloud client, see application.conf
+2. Provide configuration file to configure cloud client, see `application-template.conf` file in resources.
 3. Create a file with path maps similar to example below
 
 ```
@@ -30,4 +32,4 @@ cloud storage by implementing `CloudClient` interface.
 /Users/marcin/Pictures:/my-cloud-files/pictures
 ```
 
-4. Run CloudSync with `java -Dconfig.file=path/to/config` -jar <path_to_jar> file:///path/to/clousSyncPathMappings.txt
+4. Run CloudSync with `java -Dconfig.file=path/to/config -jar <path_to_jar> file:///path/to/clousSyncPathMappings.txt`
