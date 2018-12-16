@@ -1,0 +1,9 @@
+language: scala
+dist: trusty
+branches:
+  only:
+    - master
+matrix:
+  include:
+  - jdk: oraclejdk8
+    scala: 2.12.5
