@@ -10,12 +10,12 @@ object FileSyncService extends Loggable {
       _    <- logInfo(s"Uploading file: ${triggerFile} to remote prefix $remoteBasePath")
       file <- env.client.put(
         new File(triggerFile.localFile.path),
-        FileOps.buildRemotePath(triggerFile, remoteBasePath)
+        FileOps.buildRemotePath(triggerFile.localFile.path, triggerFile.localBasePath, remoteBasePath)
       )
       metaFile <- env.client.put(
         s"""{"deviceName":"test","hash":"${triggerFile.localFile.hash}"}""",
         MetaFileOps.getMetaFilePath(
-          FileOps.buildRemotePath(triggerFile, remoteBasePath)
+          FileOps.buildRemotePath(triggerFile.localFile.path, triggerFile.localBasePath, remoteBasePath)
         )
       )
     } yield metaFile
@@ -42,7 +42,7 @@ object FileSyncService extends Loggable {
     for {
       _             <- logInfo(s"Uploading file if changed $localBasePath, $localRelativePath -> $remoteBasePath")
       triggerFile   <- FileOps.toTriggerFile(localBasePath, localRelativePath)
-      remotePath = FileOps.buildRemotePath(triggerFile, remoteBasePath)
+      remotePath = FileOps.buildRemotePath(localRelativePath, localBasePath, remoteBasePath)
       isChanged     <- isFileChanged(triggerFile.localFile, remotePath)
       ret           <- {
         if (isChanged)

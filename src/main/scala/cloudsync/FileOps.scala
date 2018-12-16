@@ -26,10 +26,10 @@ object FileOps extends Loggable {
 
   def pathHasPrefix(path: String, prefix: String): Boolean = path.startsWith(prefix)
 
-  def createPath(path: String): Boolean = {
-    log.debug(s"Create path: $path")
-    new File(path).mkdirs()
-  }
+  def createPath[F[_]](path: String)(implicit F: Effect[F]): F[Unit] = for {
+    _ <- logDebug(s"Create path: $path")
+    _ <- F.delay(new File(path).mkdirs())
+  } yield ()
 
   def absoluteToRelative(absolutePath: String, basePath: String): String = {
     log.debug(s"Converting absolute to relative path: $absolutePath, $basePath")
@@ -45,7 +45,7 @@ object FileOps extends Loggable {
     new File(path).exists()
   }
 
-  def listFiles(path: String): Option[Seq[String]] = {
+  def listFiles(path: String): Option[List[String]] = {
     log.debug(s"List files for path: $path")
     val file = new File(path)
     Try {
@@ -53,29 +53,22 @@ object FileOps extends Loggable {
     }.toOption
   }
 
-  def listAllFiles(path: String): Seq[String] = {
+  def listAllFiles(path: String): List[String] = {
     log.debug(s"List files for path: $path")
-    FileUtils.listFiles(new File(path), TrueFileFilter.INSTANCE, FalseFileFilter.INSTANCE).iterator().asScala.toSeq
+    FileUtils.listFiles(new File(path), TrueFileFilter.INSTANCE, FalseFileFilter.INSTANCE).iterator().asScala.toList
       .map(_.getAbsolutePath)
   }
 
-  def splitPathToParts(path: String): Seq[String] = {
-    path.split(pathSeparator)
+  def splitPathToParts(path: String): List[String] = {
+    path.split(pathSeparator).toList
   }
 
   def joinPathParts(parts: Seq[String]): String = {
     parts.mkString(pathSeparator)
   }
 
-  def buildRemotePath(triggerFile: TriggerFile, remoteBasePath: String): String = {
-    log.debug(s"Building remote path: $triggerFile, $remoteBasePath")
-    remoteBasePath / triggerFile.localFile.path.replaceFirst(
-      triggerFile.localBasePath, ""
-    )
-  }
-
   def buildRemotePath(localPath: String, localBasePath: String, remoteBasePath: String): String = {
-    log.debug(s"Building remote path: $localBasePath, $localPath, $remoteBasePath")
+    log.debug(s"Building remote path: $localPath, $localBasePath, $remoteBasePath")
     remoteBasePath / localPath.replaceFirst(localBasePath, "")
   }
 
