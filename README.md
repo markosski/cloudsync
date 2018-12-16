@@ -18,7 +18,7 @@ changes. Change to a file will sync the file with its counterpart in the cloud s
 At the moment only AWS S3 storage is implemented. CloudSync can be easily extended to other
 cloud storage by implementing `CloudClient` interface.
 
-CloudClient was tested on MacOS and should work fine on Linux as well, not sure about Windows.
+CloudSync was tested on MacOS and should work fine on Linux as well, not sure about Windows.
 
 ## How to use.
 
