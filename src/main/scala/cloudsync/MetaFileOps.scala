@@ -1,8 +1,11 @@
 package cloudsync
 
+import cats.Monad
 import cloudsync.client.CloudClient
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
+import cats.implicits._
+import cats.effect._
 
 case class MetaRecord(deviceName: String, hash: String)
 case class MetaFileOps(path: String, meta: MetaRecord)
@@ -15,14 +18,14 @@ object MetaFileOps extends Loggable {
     FileOps.joinPathParts(parts.dropRight(1)) / "_syncmeta" / parts.last
   }
 
-  def getMetaFileContents(path: String, client: CloudClient): Maybe[MetaRecord] = {
-    log.debug(s"Getting contents of meta file: $path")
+  def getMetaFileContents[F[_]](path: String, client: CloudClient[F])(implicit E: Effect[F]): F[MetaRecord] = {
     val mapper = new ObjectMapper()
     mapper.registerModule(DefaultScalaModule)
 
     for {
-      content <- client.get(path)
-      res     <- toMaybe(mapper.readValue(content, classOf[MetaRecord]))
+      _       <- logInfo(s"Getting contents of meta file: $path")
+      content <- client.getContents(path)
+      res     <- E.pure(mapper.readValue(content, classOf[MetaRecord]))
     } yield res
   }
 }

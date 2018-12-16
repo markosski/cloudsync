@@ -1,41 +1,40 @@
 package cloudsync.client
 import java.io.File
 
-import cloudsync.{Maybe, Loggable}
+import cats.{Applicative, Monad}
+import cats.effect.{Effect, Sync}
+import cloudsync.{Loggable}
 
-class TestClient extends CloudClient with Loggable {
-  def put(file: File, path: String): Maybe[Boolean] = {
+class TestClient[F[_]: Effect](implicit E: Effect[F]) extends CloudClient[F] with Loggable {
+
+  def put(file: File, path: String): F[Unit] = E.delay {
     log.info(s"put, $file -> $path")
-    Right(true)
   }
 
-  def put(content: String, path: String): Maybe[Boolean] = {
+  def put(content: String, path: String): F[Unit] = E.delay {
     log.info(s"put, ${content.slice(0, 50)} -> $path")
-    Right(true)
   }
 
-  def get(path: String): Maybe[String] = {
+  def getContents(path: String): F[String] = E.delay {
     log.info(s"get, $path")
-    Right("test contents")
+    "test contents"
   }
 
-  def get(remotePath: String, localPath: String): Maybe[Boolean] = {
+  def get(remotePath: String, localPath: String): F[Unit] = E.delay {
     log.info(s"get, $remotePath -> $localPath")
-    Right(true)
   }
 
-  def delete(path: String): Maybe[Boolean] = {
+  def delete(path: String): F[Unit] = E.delay {
     log.info(s"delete, $path")
-    Right(true)
   }
 
-  def exists(path: String): Maybe[Boolean] = {
+  def exists(path: String): F[Boolean] = E.delay {
     log.info(s"exists, $path")
-    Right(true)
+    true
   }
 
-  def list(path: String): Maybe[Seq[String]] = {
+  def list(path: String): F[Seq[String]] = E.delay {
     log.info(s"list, $path")
-    Right(List("1", "2", "3"))
+    List("1", "2", "3")
   }
 }
