@@ -1,5 +1,4 @@
-# CloudSync
-
+# CloudSync [![Build Status](https://travis-ci.org/martez81/cloudsync.svg?branch=master)](https://travis-ci.org/martez81/cloudsync)
 ```
               ,,                           ,,
   .g8"""bgd `7MM                         `7MM   .M"""bgd
