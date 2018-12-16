@@ -95,7 +95,7 @@ object FileOps extends Loggable {
     */
   def computeMD5[F[_]](file: File)(implicit E: Effect[F]): F[String] = for {
 
-    _     <- logDebug(s"Calculating md5 hash for file: ${file.getAbsolutePath}")
+    _    <- logDebug(s"Calculating md5 hash for file: ${file.getAbsolutePath}")
     hash <- E.delay {
       val b = Files.readAllBytes(Paths.get(file.getAbsolutePath))
       val bytes: Array[Byte] = MessageDigest.getInstance("MD5").digest(b)

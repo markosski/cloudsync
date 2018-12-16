@@ -36,18 +36,18 @@ object MonitorApp extends Loggable {
     case Event("create", path, localDir, remoteDir) => for {
         _             <- logInfo(s"processing create event with path: $path")
         relativePath  <- E.pure(FileOps.absoluteToRelative(path, localDir))
-        ret           <- FileSyncService.uploadFileIfChanged(localDir, relativePath, remoteDir)
-      } yield ret
+        _             <- FileSyncService.uploadFileIfChanged(localDir, relativePath, remoteDir)
+      } yield ()
     case Event("update", path, localDir, remoteDir) => for {
         _             <- logInfo(s"processing update event with path: $path")
         relativePath  <- E.pure(FileOps.absoluteToRelative(path, localDir))
-        ret           <- FileSyncService.uploadFileIfChanged(localDir, relativePath, remoteDir)
-      } yield ret
+        _             <- FileSyncService.uploadFileIfChanged(localDir, relativePath, remoteDir)
+      } yield ()
     case Event("delete", path, localDir, remoteDir) => for {
         _             <- logInfo(s"processing delete event with path: $path")
         relativePath  <- E.pure(FileOps.absoluteToRelative(path, localDir))
-        ret           <- FileSyncService.deleteFile(localDir, relativePath, remoteDir)
-      } yield ret
+        _             <- FileSyncService.deleteFile(localDir, relativePath, remoteDir)
+      } yield ()
     case Event("terminate", _, _, _) => E.pure(())
     case null => E.pure(())
     case _ => E.raiseError(new Exception("Unknown event"))
@@ -68,7 +68,7 @@ object MonitorApp extends Loggable {
           E.raiseError(error)
         }
       }.parSequence
-    } yield proc
+    } yield ()
   }
 
   def createEvent(pathMaps: Seq[PathMap])(eventType: String, triggerFile: String): Event = {

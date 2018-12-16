@@ -28,27 +28,27 @@ class S3Client[F[_]](region: String, bucket: String)(implicit E: Effect[F]) exte
   private def cleanPath(path: String): String = path.stripPrefix("/")
 
   def put(file: File, path: String) = for {
-      _   <- E.delay(log.debug(s"S3, uploading file: $file -> $path"))
-      res <- E.delay(client.putObject(bucket, cleanPath(path), file))
-    } yield res
+      _ <- E.delay(log.debug(s"S3, uploading file: $file -> $path"))
+      _ <- E.delay(client.putObject(bucket, cleanPath(path), file))
+    } yield ()
 
   def put(content: String, path: String) = for {
-      _   <- E.delay(log.debug(s"S3, creating file with content: $path"))
-      res <- E.delay(client.putObject(bucket, cleanPath(path), content))
-    } yield res
+      _ <- E.delay(log.debug(s"S3, creating file with content: $path"))
+      _ <- E.delay(client.putObject(bucket, cleanPath(path), content))
+    } yield ()
 
   def getContents(path: String): F[String] = for {
       _   <- E.delay(log.debug(s"S3, getting contenst of file $path"))
-      res <- E.delay {
+      ret <- E.delay {
         val is = new InputStreamReader(client.getObject(bucket, cleanPath(path)).getObjectContent)
         val reader = new BufferedReader(is)
         reader.lines().toArray().mkString(System.getProperty("line.separator"))
       }
-    } yield res
+    } yield ret
 
   def get(remotePath: String, localPath: String) = for {
-      _   <- E.delay(log.debug(s"S3, download file $remotePath -> $localPath"))
-      res <- E.delay {
+      _ <- E.delay(log.debug(s"S3, download file $remotePath -> $localPath"))
+      _ <- E.delay {
         val basePath = FileOps.getBasePath(localPath)
         if (!FileOps.pathExists(basePath))
           FileOps.createPath(basePath)
@@ -58,7 +58,7 @@ class S3Client[F[_]](region: String, bucket: String)(implicit E: Effect[F]) exte
         val file = new File(localPath)
         client.getObject(new GetObjectRequest(bucket, cleanPath(remotePath)), file)
       }
-    } yield res
+    } yield ()
 
   def delete(path: String) = for {
       _          <- E.delay(log.debug(s"S3, deleting file: $path"))
@@ -73,7 +73,7 @@ class S3Client[F[_]](region: String, bucket: String)(implicit E: Effect[F]) exte
         }
         case Nil => true
       })
-    } yield res
+    } yield ()
 
   def exists(path: String) = for {
       _   <- E.delay(log.debug(s"S3, checking if file exist: $path"))
