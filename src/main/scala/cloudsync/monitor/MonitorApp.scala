@@ -65,7 +65,6 @@ object MonitorApp extends Loggable {
       proc    <- events.map { event => 
         processEvent(event).handleErrorWith { error =>
           logError(s"Failed processing event: ${event} with error: ${error.getMessage}")
-          E.raiseError(error)
         }
       }.parSequence
     } yield ()

@@ -18,13 +18,14 @@ object MetaFileOps extends Loggable {
     FileOps.joinPathParts(parts.dropRight(1)) / "_syncmeta" / parts.last
   }
 
-  def getMetaFileContents[F[_]](path: String, client: CloudClient[F])(implicit E: Effect[F]): F[MetaRecord] = {
+  def getMetaFileContents[F[_]](path: String, getContents: String => F[String])
+  (implicit E: Effect[F]): F[MetaRecord] = {
     val mapper = new ObjectMapper()
     mapper.registerModule(DefaultScalaModule)
 
     for {
       _       <- logInfo(s"Getting contents of meta file: $path")
-      content <- client.getContents(path)
+      content <- getContents(path)
       res     <- E.pure(mapper.readValue(content, classOf[MetaRecord]))
     } yield res
   }

@@ -5,7 +5,8 @@ import cats.effect._
 import cats.implicits._
 
 object FileSyncService extends Loggable {
-  def uploadFile[F[_]](triggerFile: TriggerFile, remoteBasePath: String)(implicit env: Env[F], E: Effect[F]) =
+  def uploadFile[F[_]](triggerFile: TriggerFile, remoteBasePath: String)
+  (implicit env: Env[F], E: Effect[F]): F[Unit] =
     for {
       _    <- logInfo(s"Uploading file: ${triggerFile} to remote prefix $remoteBasePath")
       file <- env.client.put(
@@ -18,9 +19,10 @@ object FileSyncService extends Loggable {
           FileOps.buildRemotePath(triggerFile.localFile.path, triggerFile.localBasePath, remoteBasePath)
         )
       )
-    } yield metaFile
+    } yield ()
 
-  def isFileChanged[F[_]](localFile: LocalFile, remotePath: String)(implicit env: Env[F], E: Effect[F]) =
+  def isFileChanged[F[_]](localFile: LocalFile, remotePath: String)
+  (implicit env: Env[F], E: Effect[F]): F[Boolean] =
     for {
       _             <- logInfo(s"Check if file has changed: $localFile, $remotePath")
       metaFilePath  <- MetaFileOps.getMetaFilePath(remotePath).pure[F]
@@ -29,7 +31,7 @@ object FileSyncService extends Loggable {
         if (!exists) E.pure(true)
         else
           for {
-            metaRecord <- MetaFileOps.getMetaFileContents(metaFilePath, env.client)
+            metaRecord <- MetaFileOps.getMetaFileContents(metaFilePath, env.client.getContents _)
             ret <- E.pure{
               if (metaRecord.hash == localFile.hash) false
               else true
@@ -38,11 +40,12 @@ object FileSyncService extends Loggable {
       }
     } yield ret
 
-  def uploadFileIfChanged[F[_]](localBasePath: String, localRelativePath: String, remoteBasePath: String)(implicit env: Env[F], E: Effect[F]) =
+  def uploadFileIfChanged[F[_]](localBasePath: String, localRelativePath: String, remoteBasePath: String)
+  (implicit env: Env[F], E: Effect[F]): F[Boolean] = 
     for {
       _             <- logInfo(s"Uploading file if changed $localBasePath, $localRelativePath -> $remoteBasePath")
       triggerFile   <- FileOps.toTriggerFile(localBasePath, localRelativePath)
-      remotePath = FileOps.buildRemotePath(localRelativePath, localBasePath, remoteBasePath)
+      remotePath    = FileOps.buildRemotePath(localRelativePath, localBasePath, remoteBasePath)
       isChanged     <- isFileChanged(triggerFile.localFile, remotePath)
       ret           <- {
         if (isChanged)
@@ -52,7 +55,8 @@ object FileSyncService extends Loggable {
       }
     } yield ret
 
-  def downloadFileIfChanged[F[_]](remotePath: String, remoteBasePath: String, localBasePath: String)(implicit env: Env[F], E: Effect[F]) =
+  def downloadFileIfChanged[F[_]](remotePath: String, remoteBasePath: String, localBasePath: String)
+  (implicit env: Env[F], E: Effect[F]): F[Unit] = 
     for {
       _         <- logInfo(s"Downloading $remotePath -> $localBasePath")
       localPath = FileOps.buildLocalPath(remotePath, remoteBasePath, localBasePath)
@@ -69,9 +73,10 @@ object FileSyncService extends Loggable {
             }
             else E.pure(())
         } yield ret
-    } yield ret
+    } yield ()
 
-  def deleteFile[F[_]: Effect](localBasePath: String, localRelativePath: String, remoteBasePath: String)(implicit env: Env[F]) =
+  def deleteFile[F[_]: Effect](localBasePath: String, localRelativePath: String, remoteBasePath: String)
+  (implicit env: Env[F]): F[Unit] =
     for {
       metaFile <- env.client.delete(
         MetaFileOps.getMetaFilePath(
@@ -81,5 +86,5 @@ object FileSyncService extends Loggable {
       file <- env.client.delete(
         FileOps.buildRemotePath(localRelativePath, localBasePath, remoteBasePath)
       )
-    } yield file
+    } yield ()
 }
